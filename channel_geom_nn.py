@@ -7,13 +7,14 @@ from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
 
 # read the data
-df = pd.read_csv('data/mcelroy_dataclean.csv') # read data set using pandas
+# df = pd.read_csv('data/mcelroy_dataclean.csv') # read data set using pandas
+df = pd.read_csv('data/wilkerson_dataclean.csv') # read data set using pandas
 df = df.dropna(inplace=False)  # Remove all nan entries.
 print('Data summary:\n')
 print(df.describe(), '\n\n') # Overview of dataset
 
 # subset for train and test and rescale all values
-df_train, df_test = train_test_split(df, test_size=0.10)
+df_train, df_test = train_test_split(df, test_size=0.20)
 
 scaler = MinMaxScaler() # For normalizing dataset
 
@@ -26,22 +27,18 @@ y_train = scaler.fit_transform(df_train[['Bbf.m', 'Hbf.m']].values)
 X_test = scaler.fit_transform(df_test.drop(['Bbf.m', 'Hbf.m'], axis=1).values)
 y_test = scaler.fit_transform(df_test[['Bbf.m', 'Hbf.m']].values)
 
+
 def denormalize(df, norm_data):
     """
     Above written function for denormalization of data after normalizing
     this function will give original scale of values.
     """
-    # print(df[['Bbf.m', 'Hbf.m']].values)
-    # df = df[['Bbf.m', 'Hbf.m']].values.reshape(-1,1)
-    # norm_data = norm_data.reshape(-1,1)
+
     df = df[['Bbf.m', 'Hbf.m']].values
     norm_data = norm_data
     scl = MinMaxScaler()
     a = scl.fit_transform(df)
     new = scl.inverse_transform(norm_data)
-    # print('df:', df[:10, :])
-    # print('norm_data:', norm_data[:10, :])
-    # print('rescaled:', new[:10, :])
     return new
 
 
@@ -103,7 +100,7 @@ with tf.Session() as sess:
             sess.run([loss, train], feed_dict = {xs:X_train[j,:].reshape(1, X_train.shape[1]), 
                                                  ys:y_train[j,:].reshape(1, y_train.shape[1])})
 
-        # update the loss
+        # keep track of the loss
         c_train.append(sess.run(loss, feed_dict = {xs:X_train, ys:y_train}))
         c_test.append(sess.run(loss, feed_dict = {xs:X_test, ys:y_test}))
         
@@ -120,7 +117,7 @@ with tf.Session() as sess:
     pred = sess.run(output, feed_dict={xs:X_test})
     
     # denormalize data  
-    print('loss :', sess.run(loss, feed_dict={xs:X_test, ys:y_test}))
+    print('test loss :', sess.run(loss, feed_dict={xs:X_test, ys:y_test}))
     y_test = denormalize(df_test, y_test)
     pred = denormalize(df_test, pred)
 
@@ -132,7 +129,6 @@ with tf.Session() as sess:
     axes1[2].hist([df_train['D50.mm'], df_test['D50.mm']], histtype = 'bar', density = True)
     axes1[2].set_xlabel('D50 (mm)')
     plt.legend(['train', 'test'], loc = 'best')
-    # plt.show(block = False)
     fig1.savefig('figures/split.png')
 
     fig2, ax2 = plt.subplots(nrows=1, ncols=2)
@@ -156,8 +152,6 @@ with tf.Session() as sess:
     ax2[1].set_ylabel('pred')
     ax2[1].set_xlim([df['Bbf.m'].min(), df['Bbf.m'].max()])
     ax2[1].set_ylim([df['Bbf.m'].min(), df['Bbf.m'].max()])
-
-    # plt.show(block = False)
     fig2.savefig('figures/compare.png')
 
     fig3, ax3 = plt.subplots()
@@ -166,7 +160,6 @@ with tf.Session() as sess:
     ax3.set_xlabel('epoch')
     ax3.set_ylabel('loss')
     plt.legend(['train', 'test'], loc = 'best')
-    # plt.show(block = False)
     fig3.savefig('figures/train.png')
 
 
