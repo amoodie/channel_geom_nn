@@ -7,10 +7,11 @@ from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
 
 # read the data
-df = pd.read_csv('data/mcelroy_dataclean.csv') # read data set using pandas
+# df = pd.read_csv('data/mcelroy_dataclean.csv') # read data set using pandas
 # df = pd.read_csv('data/wilkerson_dataclean.csv') # read data set using pandas
 # df = pd.read_csv('data/combined.csv') # read data set using pandas
 # df = pd.read_csv('data/combined_modified.csv') # read data set using pandas
+df = pd.read_csv('data/combined_modified_cut.csv') # read data set using pandas
 df = df.dropna(inplace=False)  # Remove all nan entries.
 print('Data summary:\n')
 print(df.describe(), '\n\n') # Overview of dataset
@@ -79,7 +80,7 @@ ys = tf.placeholder("float", [None, y_train.shape[1]], name='y')
 output, W_O = neural_net_model(xs, X_train.shape[1])
 
 # our mean squared error cost function
-loss = tf.reduce_mean(tf.square(output - ys))
+loss = tf.reduce_sum(tf.square(output - ys))
 
 # Gradinent Descent optimiztion just discussed above for updating weights and biases
 train = tf.train.GradientDescentOptimizer(0.001).minimize(loss)
@@ -100,7 +101,7 @@ with tf.Session() as sess:
     saver = tf.train.Saver()
     #saver.restore(sess,'channel_geom_nn.ckpt')
     
-    for i in range(5):
+    for i in range(500):
         for j in range(X_train.shape[0]):
             # Run loss and train with each sample
             sess.run([loss, train], feed_dict = {xs:X_train[j,:].reshape(1, X_train.shape[1]), 
