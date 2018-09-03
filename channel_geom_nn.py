@@ -7,8 +7,10 @@ from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
 
 # read the data
-# df = pd.read_csv('data/mcelroy_dataclean.csv') # read data set using pandas
-df = pd.read_csv('data/wilkerson_dataclean.csv') # read data set using pandas
+df = pd.read_csv('data/mcelroy_dataclean.csv') # read data set using pandas
+# df = pd.read_csv('data/wilkerson_dataclean.csv') # read data set using pandas
+# df = pd.read_csv('data/combined.csv') # read data set using pandas
+# df = pd.read_csv('data/combined_modified.csv') # read data set using pandas
 df = df.dropna(inplace=False)  # Remove all nan entries.
 print('Data summary:\n')
 print(df.describe(), '\n\n') # Overview of dataset
@@ -63,7 +65,7 @@ def neural_net_model(X_data, input_dim):
     # layer_2 = tf.nn.relu(layer_2)
 
     # output layer multiplying and adding bias then activation function
-    W_O = tf.Variable(tf.random_uniform([n_nodes, 2]))
+    W_O = tf.Variable(tf.random_uniform([n_nodes, 2])) # 2 because there are two outputs
     b_O = tf.Variable(tf.zeros([2]))
     output = tf.add(tf.matmul(layer_1, W_O), b_O)
 
@@ -92,9 +94,13 @@ c_test = []
 with tf.Session() as sess:
     # Initiate session and initialize all vaiables
     sess.run(tf.global_variables_initializer())
+
+    writer = tf.summary.FileWriter("logs/graph", sess.graph)
+
     saver = tf.train.Saver()
     #saver.restore(sess,'channel_geom_nn.ckpt')
-    for i in range(500):
+    
+    for i in range(5):
         for j in range(X_train.shape[0]):
             # Run loss and train with each sample
             sess.run([loss, train], feed_dict = {xs:X_train[j,:].reshape(1, X_train.shape[1]), 
@@ -112,6 +118,7 @@ with tf.Session() as sess:
 
     # finished training
     print('Training complete.')
+    writer.close()
 
     # predict output of test data after training
     pred = sess.run(output, feed_dict={xs:X_test})
