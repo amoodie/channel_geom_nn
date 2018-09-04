@@ -30,6 +30,14 @@ y_train = scaler.fit_transform(df_train[['Bbf.m', 'Hbf.m']].values)
 X_test = scaler.fit_transform(df_test.drop(['Bbf.m', 'Hbf.m'], axis=1).values)
 y_test = scaler.fit_transform(df_test[['Bbf.m', 'Hbf.m']].values)
 
+batch_size = 5
+ds_train = tf.data.Dataset.from_tensor_slices((X_train, y_train)).repeat().batch(batch_size)
+it_train = ds_train.make_one_shot_iterator()
+xs, ys = it_train.get_next()
+
+# print('output_types: ', ds_train.output_types)
+# print('output_shap: ', ds_train.output_shapes)
+
 
 def denormalize(df, norm_data):
     """
@@ -51,50 +59,53 @@ def neural_net_model(X_data, input_dim):
     Weights and biases are abberviated as W_1,W_2 and b_1, b_2 
     These are variables with will be updated during training.
     """
-    n_nodes = 3
+    n_nodes = 4
+
+    # print('X_data: ', X_data)
 
     # layer 1 multiplying and adding bias then activation function
-    W_1 = tf.Variable(tf.random_uniform([input_dim, n_nodes]))
-    b_1 = tf.Variable(tf.zeros([n_nodes]))
+    W_1 = tf.Variable(tf.random_uniform([input_dim, n_nodes], dtype='float64'))
+    b_1 = tf.Variable(tf.zeros([n_nodes], dtype = 'float64'))
     layer_1 = tf.add(tf.matmul(X_data, W_1), b_1)
-    layer_1 = tf.nn.relu(layer_1)
+    # layer_1 = tf.nn.relu(layer_1)
     # layer_1 = tf.nn.softmax(layer_1)
+    layer_1 = tf.nn.leaky_relu(layer_1, alpha = 1)
 
 
     # layer 2 multiplying and adding bias then activation function    
-    # W_2 = tf.Variable(tf.random_uniform([n_nodes, n_nodes]))
-    # b_2 = tf.Variable(tf.zeros([n_nodes2]))
+    # W_2 = tf.Variable(tf.random_uniform([n_nodes, n_nodes], dtype='float64'))
+    # b_2 = tf.Variable(tf.zeros([n_nodes], dtype = 'float64'))
     # layer_2 = tf.add(tf.matmul(layer_1, W_2), b_2)
     # layer_2 = tf.nn.relu(layer_2)
 
     # output layer multiplying and adding bias then activation function
-    W_O = tf.Variable(tf.random_uniform([n_nodes, 2])) # 2 because there are two outputs
-    b_O = tf.Variable(tf.zeros([2]))
+    W_O = tf.Variable(tf.random_uniform([n_nodes, 2], dtype = 'float64')) # 2 because there are two outputs
+    b_O = tf.Variable(tf.zeros([2], dtype = 'float64'))
     output = tf.add(tf.matmul(layer_1, W_O), b_O)
     # output = tf.pow(tf.matmul(layer_1, W_O), b_O)
 
     return output, W_O
 
 
-xs = tf.placeholder("float", [None, X_train.shape[1]], name='x')
-ys = tf.placeholder("float", [None, y_train.shape[1]], name='y')
+# xs = tf.placeholder("float", [None, X_train.shape[1]], name='x')
+# ys = tf.placeholder("float", [None, y_train.shape[1]], name='y')
 
 # the model
 output, W_O = neural_net_model(xs, X_train.shape[1])
 
 # our mean squared error cost function
 # loss = tf.reduce_sum(tf.square(output - ys))
-loss = tf.reduce_mean(tf.square(output - ys))
-# loss = tf.losses.mean_squared_error(output, y)
+# loss = tf.reduce_mean(tf.square(output - ys))
+loss = tf.losses.mean_squared_error(output, ys)
 
 # Gradinent Descent optimiztion just discussed above for updating weights and biases
 learning_rate = 0.001
-train = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss)
-# train = tf.train.AdamOptimizer(learning_rate).minimize(loss)
+# train = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss)
+train = tf.train.AdamOptimizer(learning_rate).minimize(loss)
 
 # some other initializations
-correct_pred = tf.argmax(output, 1)
-accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
+# correct_pred = tf.argmax(output, 1)
+# accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
 
 c_train = []
 c_test = []
@@ -110,16 +121,15 @@ with tf.Session() as sess:
 
     # batcher = tf.train.batch(, batch_size=10, allow_smaller_final_batch = True)
 
-    for i in range(5):
-        for j in range(X_train.shape[0]):
+    for i in range(3000):
+        # for j in range(X_train.shape[0]):
             # Run loss and train with each sample (1 sample per batch)
-            sess.run([loss, train], feed_dict = {xs:X_train[j,:].reshape(1, X_train.shape[1]), 
-                                                 ys:y_train[j,:].reshape(1, y_train.shape[1])})
+            # sess.run([loss, train], feed_dict = {xs:X_train[j,:].reshape(1, X_train.shape[1]), 
+            #                                      ys:y_train[j,:].reshape(1, y_train.shape[1])})
 
             # Run loss and train with each sample (10 samples per batch)
             # batch_x, batch_y = batcher.next_batch(batch_size)
-            # sess.run([loss, train], feed_dict = {xs:batch_x.reshape(1, X_train.shape[1]), 
-            #                                      ys:batch_y.reshape(1, y_train.shape[1])})
+        sess.run([loss, train])
 
         # keep track of the loss
         c_train.append(sess.run(loss, feed_dict = {xs:X_train, ys:y_train}))
