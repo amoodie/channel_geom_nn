@@ -7,11 +7,11 @@ from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
 
 # read the data
-# df = pd.read_csv('data/mcelroy_dataclean.csv') # read data set using pandas
+df = pd.read_csv('data/mcelroy_dataclean.csv') # read data set using pandas
 # df = pd.read_csv('data/wilkerson_dataclean.csv') # read data set using pandas
 # df = pd.read_csv('data/combined.csv') # read data set using pandas
 # df = pd.read_csv('data/combined_modified.csv') # read data set using pandas
-df = pd.read_csv('data/combined_modified_cut.csv') # read data set using pandas
+# df = pd.read_csv('data/combined_modified_cut.csv') # read data set using pandas
 df = df.dropna(inplace=False)  # Remove all nan entries.
 print('Data summary:\n')
 print(df.describe(), '\n\n') # Overview of dataset
@@ -58,10 +58,12 @@ def neural_net_model(X_data, input_dim):
     b_1 = tf.Variable(tf.zeros([n_nodes]))
     layer_1 = tf.add(tf.matmul(X_data, W_1), b_1)
     layer_1 = tf.nn.relu(layer_1)
+    # layer_1 = tf.nn.softmax(layer_1)
+
 
     # layer 2 multiplying and adding bias then activation function    
     # W_2 = tf.Variable(tf.random_uniform([n_nodes, n_nodes]))
-    # b_2 = tf.Variable(tf.zeros([n_nodes]))
+    # b_2 = tf.Variable(tf.zeros([n_nodes2]))
     # layer_2 = tf.add(tf.matmul(layer_1, W_2), b_2)
     # layer_2 = tf.nn.relu(layer_2)
 
@@ -69,6 +71,7 @@ def neural_net_model(X_data, input_dim):
     W_O = tf.Variable(tf.random_uniform([n_nodes, 2])) # 2 because there are two outputs
     b_O = tf.Variable(tf.zeros([2]))
     output = tf.add(tf.matmul(layer_1, W_O), b_O)
+    # output = tf.exp(tf.matmul(layer_1, W_O), b_O)
 
     return output, W_O
 
@@ -80,10 +83,13 @@ ys = tf.placeholder("float", [None, y_train.shape[1]], name='y')
 output, W_O = neural_net_model(xs, X_train.shape[1])
 
 # our mean squared error cost function
-loss = tf.reduce_sum(tf.square(output - ys))
+# loss = tf.reduce_sum(tf.square(output - ys))
+loss = tf.reduce_mean(tf.square(output - ys))
 
 # Gradinent Descent optimiztion just discussed above for updating weights and biases
-train = tf.train.GradientDescentOptimizer(0.001).minimize(loss)
+learning_rate = 0.001
+# train = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss)
+train = tf.train.AdamOptimizer(learning_rate).minimize(loss)
 
 # some other initializations
 correct_pred = tf.argmax(output, 1)
