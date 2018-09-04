@@ -85,6 +85,7 @@ output, W_O = neural_net_model(xs, X_train.shape[1])
 # our mean squared error cost function
 # loss = tf.reduce_sum(tf.square(output - ys))
 loss = tf.reduce_mean(tf.square(output - ys))
+# loss = tf.losses.mean_squared_error(output, y)
 
 # Gradinent Descent optimiztion just discussed above for updating weights and biases
 learning_rate = 0.001
@@ -106,12 +107,19 @@ with tf.Session() as sess:
 
     saver = tf.train.Saver()
     #saver.restore(sess,'channel_geom_nn.ckpt')
-    
-    for i in range(1000):
+
+    # batcher = tf.train.batch(, batch_size=10, allow_smaller_final_batch = True)
+
+    for i in range(5):
         for j in range(X_train.shape[0]):
-            # Run loss and train with each sample
+            # Run loss and train with each sample (1 sample per batch)
             sess.run([loss, train], feed_dict = {xs:X_train[j,:].reshape(1, X_train.shape[1]), 
                                                  ys:y_train[j,:].reshape(1, y_train.shape[1])})
+
+            # Run loss and train with each sample (10 samples per batch)
+            # batch_x, batch_y = batcher.next_batch(batch_size)
+            # sess.run([loss, train], feed_dict = {xs:batch_x.reshape(1, X_train.shape[1]), 
+            #                                      ys:batch_y.reshape(1, y_train.shape[1])})
 
         # keep track of the loss
         c_train.append(sess.run(loss, feed_dict = {xs:X_train, ys:y_train}))
