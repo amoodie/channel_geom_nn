@@ -71,7 +71,7 @@ def neural_net_model(X_data, input_dim):
     W_O = tf.Variable(tf.random_uniform([n_nodes, 2])) # 2 because there are two outputs
     b_O = tf.Variable(tf.zeros([2]))
     output = tf.add(tf.matmul(layer_1, W_O), b_O)
-    # output = tf.exp(tf.matmul(layer_1, W_O), b_O)
+    # output = tf.pow(tf.matmul(layer_1, W_O), b_O)
 
     return output, W_O
 
@@ -88,8 +88,8 @@ loss = tf.reduce_mean(tf.square(output - ys))
 
 # Gradinent Descent optimiztion just discussed above for updating weights and biases
 learning_rate = 0.001
-# train = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss)
-train = tf.train.AdamOptimizer(learning_rate).minimize(loss)
+train = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss)
+# train = tf.train.AdamOptimizer(learning_rate).minimize(loss)
 
 # some other initializations
 correct_pred = tf.argmax(output, 1)
@@ -107,7 +107,7 @@ with tf.Session() as sess:
     saver = tf.train.Saver()
     #saver.restore(sess,'channel_geom_nn.ckpt')
     
-    for i in range(500):
+    for i in range(1000):
         for j in range(X_train.shape[0]):
             # Run loss and train with each sample
             sess.run([loss, train], feed_dict = {xs:X_train[j,:].reshape(1, X_train.shape[1]), 
