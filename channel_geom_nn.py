@@ -17,20 +17,41 @@ print('Data summary:\n')
 print(df.describe(), '\n\n') # Overview of dataset
 
 # subset for train and test and rescale all values
-df_train, df_test = train_test_split(df, test_size=0.20)
+df_train, df_test = train_test_split(df, test_size=0.40)
 
 scaler = MinMaxScaler() # For normalizing dataset
 
 # we want to predict the H and B given Qbf, S, D50
 # y is output and x is features
 
-X_train = scaler.fit_transform(df_train.drop(['Bbf.m', 'Hbf.m'], axis=1).values)
-y_train = scaler.fit_transform(df_train[['Bbf.m', 'Hbf.m']].values)
+# min max normalization
+# X_train = scaler.fit_transform(df_train.drop(['Bbf.m', 'Hbf.m'], axis=1).values)
+# y_train = scaler.fit_transform(df_train[['Bbf.m', 'Hbf.m']].values)
+# X_test = scaler.fit_transform(df_test.drop(['Bbf.m', 'Hbf.m'], axis=1).values)
+# y_test = scaler.fit_transform(df_test[['Bbf.m', 'Hbf.m']].values)
+# logged = False
 
-X_test = scaler.fit_transform(df_test.drop(['Bbf.m', 'Hbf.m'], axis=1).values)
-y_test = scaler.fit_transform(df_test[['Bbf.m', 'Hbf.m']].values)
+# min max log(x) normalization
+X_train = scaler.fit_transform(np.log10(df_train.drop(['Bbf.m', 'Hbf.m'], axis=1).values))
+y_train = scaler.fit_transform(np.log10(df_train[['Bbf.m', 'Hbf.m']].values))
+X_test = scaler.fit_transform(np.log10(df_test.drop(['Bbf.m', 'Hbf.m'], axis=1).values))
+y_test = scaler.fit_transform(np.log10(df_test[['Bbf.m', 'Hbf.m']].values))
+logged = True
 
-batch_size = 5
+# min max log(x) normalization (whole dataset)
+# X_train = scaler.fit_transform(np.log10(df.drop(['Bbf.m', 'Hbf.m'], axis=1).values))
+# y_train = scaler.fit_transform(np.log10(df[['Bbf.m', 'Hbf.m']].values))
+# X_test = scaler.fit_transform(np.log10(df.drop(['Bbf.m', 'Hbf.m'], axis=1).values))
+# y_test = scaler.fit_transform(np.log10(df[['Bbf.m', 'Hbf.m']].values))
+# logged = True
+
+# no normalization (be sure to turn off below for plotting)
+# X_train = (df_train.drop(['Bbf.m', 'Hbf.m'], axis=1).values)
+# y_train = (df_train[['Bbf.m', 'Hbf.m']].values)
+# X_test = (df_test.drop(['Bbf.m', 'Hbf.m'], axis=1).values)
+# y_test = (df_test[['Bbf.m', 'Hbf.m']].values)
+
+batch_size = 1
 ds_train = tf.data.Dataset.from_tensor_slices((X_train, y_train)).repeat().batch(batch_size)
 it_train = ds_train.make_one_shot_iterator()
 xs, ys = it_train.get_next()
@@ -45,12 +66,21 @@ def denormalize(df, norm_data):
     this function will give original scale of values.
     """
 
-    df = df[['Bbf.m', 'Hbf.m']].values
+    if logged:
+        df = np.log10(df[['Bbf.m', 'Hbf.m']].values)
+    else:
+        df = df[['Bbf.m', 'Hbf.m']].values
+    
     norm_data = norm_data
     scl = MinMaxScaler()
     a = scl.fit_transform(df)
     new = scl.inverse_transform(norm_data)
-    return new
+    
+    if logged:
+        expt = np.exp(new)
+        return expt
+    else:
+        return new
 
 
 def neural_net_model(X_data, input_dim):
@@ -59,7 +89,7 @@ def neural_net_model(X_data, input_dim):
     Weights and biases are abberviated as W_1,W_2 and b_1, b_2 
     These are variables with will be updated during training.
     """
-    n_nodes = 4
+    n_nodes = 2
 
     # print('X_data: ', X_data)
 
@@ -67,10 +97,9 @@ def neural_net_model(X_data, input_dim):
     W_1 = tf.Variable(tf.random_uniform([input_dim, n_nodes], dtype='float64'))
     b_1 = tf.Variable(tf.zeros([n_nodes], dtype = 'float64'))
     layer_1 = tf.add(tf.matmul(X_data, W_1), b_1)
-    # layer_1 = tf.nn.relu(layer_1)
+    layer_1 = tf.nn.relu(layer_1)
     # layer_1 = tf.nn.softmax(layer_1)
-    layer_1 = tf.nn.leaky_relu(layer_1, alpha = 1)
-
+    # layer_1 = tf.nn.leaky_relu(layer_1, alpha = 0.1)
 
     # layer 2 multiplying and adding bias then activation function    
     # W_2 = tf.Variable(tf.random_uniform([n_nodes, n_nodes], dtype='float64'))
@@ -100,8 +129,8 @@ loss = tf.losses.mean_squared_error(output, ys)
 
 # Gradinent Descent optimiztion just discussed above for updating weights and biases
 learning_rate = 0.001
-# train = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss)
-train = tf.train.AdamOptimizer(learning_rate).minimize(loss)
+train = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss)
+# train = tf.train.AdamOptimizer(learning_rate).minimize(loss)
 
 # some other initializations
 # correct_pred = tf.argmax(output, 1)
@@ -121,37 +150,45 @@ with tf.Session() as sess:
 
     # batcher = tf.train.batch(, batch_size=10, allow_smaller_final_batch = True)
 
-    for i in range(3000):
-        # for j in range(X_train.shape[0]):
+    it = 0
+    n_epoch = 10
+    n_batch_per_epoch = int( np.floor(X_train.shape[0] / batch_size) )
+    for i in range(n_epoch):
+        for j in range(n_batch_per_epoch):
             # Run loss and train with each sample (1 sample per batch)
             # sess.run([loss, train], feed_dict = {xs:X_train[j,:].reshape(1, X_train.shape[1]), 
             #                                      ys:y_train[j,:].reshape(1, y_train.shape[1])})
 
             # Run loss and train with each sample (10 samples per batch)
             # batch_x, batch_y = batcher.next_batch(batch_size)
-        sess.run([loss, train])
+            sess.run([loss, train])
 
-        # keep track of the loss
-        c_train.append(sess.run(loss, feed_dict = {xs:X_train, ys:y_train}))
-        c_test.append(sess.run(loss, feed_dict = {xs:X_test, ys:y_test}))
+            # keep track of the loss
+            c_train.append(sess.run(loss, feed_dict = {xs:X_train, ys:y_train}))
+            c_test.append(sess.run(loss, feed_dict = {xs:X_test, ys:y_test}))
+            it += 1
         
-        print('Epoch:', i, ', train loss:', c_train[i], ', test loss:', c_test[i])
+        print('Epoch:', i, ', train loss:', c_train[i*n_batch_per_epoch], ', test loss:', c_test[i*n_batch_per_epoch])
     
     # if input('Save model ? [Y/N]') == 'Y':
     #     saver.save(sess,'channel_geom_nn.ckpt')
     #     print('Model Saved')
 
     # finished training
-    print('Training complete.')
+    print('\nTraining complete.')
+    print('Total iterations: ', it)
+    print('test loss :', sess.run(loss, feed_dict={xs:X_test, ys:y_test}), '\n')
     writer.close()
 
     # predict output of test data after training
-    pred = sess.run(output, feed_dict={xs:X_test})
+    pred_test = sess.run(output, feed_dict={xs:X_test})
+    pred_train = sess.run(output, feed_dict={xs:X_train})
     
     # denormalize data  
-    print('test loss :', sess.run(loss, feed_dict={xs:X_test, ys:y_test}))
     y_test = denormalize(df_test, y_test)
-    pred = denormalize(df_test, pred)
+    pred_test = denormalize(df_test, pred_test)
+    y_train = denormalize(df_train, y_train)
+    pred_train = denormalize(df_train, pred_train)
 
     fig1, axes1 = plt.subplots(nrows=1, ncols=3)
     axes1[0].hist([df_train['Qbf.m3s'], df_test['Qbf.m3s']], histtype = 'bar', density = True)
@@ -164,35 +201,37 @@ with tf.Session() as sess:
     fig1.savefig('figures/split.png')
 
     fig2, ax2 = plt.subplots(nrows=1, ncols=2)
-    ax2[0].plot(y_test[:,1], pred[:,1], 'o')
-    ax2[0].plot([df['Hbf.m'].min(), df['Hbf.m'].max()], [df['Hbf.m'].min(), df['Hbf.m'].max()], 'k-', lw=2)
+    ax2[0].plot(df_train['Hbf.m'], pred_train[:,1], 'o', alpha=0.2)
+    ax2[0].plot(df_test['Hbf.m'], pred_test[:,1], 'o', alpha=0.2)
+    ax2[0].plot([df['Hbf.m'].min()/10, df['Hbf.m'].max()*10], [df['Hbf.m'].min()/10, df['Hbf.m'].max()*10], 'k-', lw=2)
     ax2[0].axis('square')
     ax2[0].set_title('depth H, (m)')
     ax2[0].set_yscale('log')
     ax2[0].set_xscale('log')
     ax2[0].set_xlabel('actual')
     ax2[0].set_ylabel('pred')
-    ax2[0].set_xlim([df['Hbf.m'].min(), df['Hbf.m'].max()])
-    ax2[0].set_ylim([df['Hbf.m'].min(), df['Hbf.m'].max()])
-    ax2[1].plot(y_test[:,0], pred[:,0], 'o')
-    ax2[1].plot([df['Bbf.m'].min(), df['Bbf.m'].max()], [df['Bbf.m'].min(), df['Bbf.m'].max()], 'k-', lw=2)
+    ax2[0].set_xlim([df['Hbf.m'].min()/10, df['Hbf.m'].max()*10])
+    ax2[0].set_ylim([df['Hbf.m'].min()/10, df['Hbf.m'].max()*10])
+    ax2[1].plot(df_train['Bbf.m'], pred_train[:,0], 'o', alpha=0.2)
+    ax2[1].plot(df_test['Bbf.m'], pred_test[:,0], 'o', alpha=0.2)
+    ax2[1].plot([df['Bbf.m'].min()/10, df['Bbf.m'].max()*10], [df['Bbf.m'].min()/10, df['Bbf.m'].max()*10], 'k-', lw=2)
     ax2[1].axis('square')
     ax2[1].set_title('width B, (m)')
     ax2[1].set_yscale('log')
     ax2[1].set_xscale('log')
     ax2[1].set_xlabel('actual')
     ax2[1].set_ylabel('pred')
-    ax2[1].set_xlim([df['Bbf.m'].min(), df['Bbf.m'].max()])
-    ax2[1].set_ylim([df['Bbf.m'].min(), df['Bbf.m'].max()])
+    ax2[1].set_xlim([df['Bbf.m'].min()/10, df['Bbf.m'].max()*10])
+    ax2[1].set_ylim([df['Bbf.m'].min()/10, df['Bbf.m'].max()*10])
     fig2.savefig('figures/compare.png')
 
     fig3, ax3 = plt.subplots()
-    ax3.plot(np.arange(len(c_train)), np.array(c_train))
-    ax3.plot(np.arange(len(c_test)), np.array(c_test))
+    ax3.plot(np.arange(len(c_train)) / n_batch_per_epoch, np.array(c_train))
+    ax3.plot(np.arange(len(c_test)) / n_batch_per_epoch, np.array(c_test))
     ax3.set_xlabel('epoch')
     ax3.set_ylabel('loss')
     plt.legend(['train', 'test'], loc = 'best')
     fig3.savefig('figures/train.png')
 
-
+    # print(W_O.read_value().eval())
     
