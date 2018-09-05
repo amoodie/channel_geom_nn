@@ -12,17 +12,19 @@ df = pd.read_csv('data/mcelroy_dataclean.csv') # read data set using pandas
 # df = pd.read_csv('data/combined.csv') # read data set using pandas
 # df = pd.read_csv('data/combined_modified.csv') # read data set using pandas
 # df = pd.read_csv('data/combined_modified_cut.csv') # read data set using pandas
-df = df.dropna(inplace=False)  # Remove all nan entries.
+df = df.dropna(inplace = False)  # Remove all nan entries.
+
 print('Data summary:\n')
 print(df.describe(), '\n\n') # Overview of dataset
 
 # subset for train and test and rescale all values
 df_train, df_test = train_test_split(df, test_size=0.30)
 
-scaler = MinMaxScaler() # For normalizing dataset
-
 # we want to predict the H and B given Qbf, S, D50
-# y is output and x is features
+# y is output and x is input features
+
+# do some normalization
+scaler = MinMaxScaler() # For normalizing dataset
 
 # min max normalization
 # X_train = scaler.fit_transform(df_train.drop(['Bbf.m', 'Hbf.m'], axis=1).values)
@@ -64,7 +66,9 @@ normed = False
 # logged = False
 # normed = False
 
+# set up data for mini-batching during training
 batch_size = 1
+# batch_size = 2
 ds_train = tf.data.Dataset.from_tensor_slices((X_train, y_train)).repeat().batch(batch_size)
 it_train = ds_train.make_one_shot_iterator()
 xs, ys = it_train.get_next()
@@ -95,14 +99,14 @@ def denormalize(df, norm_data):
         return new
 
 
-def neural_net_model(X_data, input_dim):
+def nn_model(X_data, input_dim):
     """
-    neural_net_model is function applying 2 hidden layer feed forward neural net.
-    Weights and biases are abberviated as W_1,W_2 and b_1, b_2 
-    These are variables with will be updated during training.
+    nn_model constructs the neural network model. 
+    It can be a 1 layer or 2 layer model, with n_nodes.
+    Weights and biases are abberviated as W_1, W_2 and b_1, b_2 
     """
-    
-    n_nodes = 2
+
+    n_nodes = 3
 
     # layer 1 multiplying and adding bias then activation function
     W_1 = tf.Variable(tf.random_uniform([input_dim, n_nodes], dtype='float64'))
@@ -124,21 +128,18 @@ def neural_net_model(X_data, input_dim):
     W_O = tf.Variable(tf.random_uniform([n_nodes, 2], dtype = 'float64')) # 2 because there are two outputs
     b_O = tf.Variable(tf.zeros([2], dtype = 'float64'))
     output = tf.add(tf.matmul(layer_1, W_O), b_O)
-    # output = tf.pow(tf.matmul(layer_1, W_O), b_O)
+    # output = tf.add(tf.matmul(layer_2, W_O), b_O)
 
     return output, W_O
 
 
-# xs = tf.placeholder("float", [None, X_train.shape[1]], name='x')
-# ys = tf.placeholder("float", [None, y_train.shape[1]], name='y')
-
 # the model
-output, W_O = neural_net_model(xs, X_train.shape[1])
+output, W_O = nn_model(xs, X_train.shape[1])
 
 # mean squared error cost function
-loss = tf.reduce_sum(tf.square(output - ys))
+# loss = tf.reduce_sum(tf.square(output - ys))
 # loss = tf.reduce_mean(tf.square(output - ys))
-# loss = tf.losses.mean_squared_error(output, ys)
+loss = tf.losses.mean_squared_error(output, ys)
 
 # Gradinent Descent optimiztion just discussed above for updating weights and biases
 learning_rate = 0.01
@@ -158,22 +159,12 @@ with tf.Session() as sess:
 
     writer = tf.summary.FileWriter("logs/graph", sess.graph)
 
-    saver = tf.train.Saver()
-    #saver.restore(sess,'channel_geom_nn.ckpt')
-
-    # batcher = tf.train.batch(, batch_size=10, allow_smaller_final_batch = True)
-
     it = 0
     n_epoch = 10
     n_batch_per_epoch = int( np.floor(X_train.shape[0] / batch_size) )
     for i in range(n_epoch):
         for j in range(n_batch_per_epoch):
-            # Run loss and train with each sample (1 sample per batch)
-            # sess.run([loss, train], feed_dict = {xs:X_train[j,:].reshape(1, X_train.shape[1]), 
-            #                                      ys:y_train[j,:].reshape(1, y_train.shape[1])})
-
-            # Run loss and train with each sample (10 samples per batch)
-            # batch_x, batch_y = batcher.next_batch(batch_size)
+            # Run loss and train with each batch
             sess.run([loss, train])
 
             # keep track of the loss
@@ -182,10 +173,6 @@ with tf.Session() as sess:
             it += 1
         
         print('Epoch:', i, ', train loss:', c_train[i*n_batch_per_epoch], ', test loss:', c_test[i*n_batch_per_epoch])
-    
-    # if input('Save model ? [Y/N]') == 'Y':
-    #     saver.save(sess,'channel_geom_nn.ckpt')
-    #     print('Model Saved')
 
     # finished training
     print('\nTraining complete.')
