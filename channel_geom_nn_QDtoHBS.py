@@ -149,7 +149,7 @@ learning_rate = 0.01
 train = tf.train.AdamOptimizer(learning_rate).minimize(loss)
 
 # some other initializations
-# _loss_summary = tf.summary.scalar(name='loss summary', tensor=loss)
+_loss_summary = tf.summary.scalar(name='loss summary', tensor=loss)
 # correct_pred = tf.argmax(output, 1)
 # accuracy = tf.losses.mean_squared_error(tf.cast(correct_pred, tf.float32), ys)
 
@@ -157,7 +157,7 @@ c_train = []
 c_test = []
 
 
-save_training = True
+save_training = False
 with tf.Session() as sess:
     # Initiate session and initialize all vaiables
     sess.run(tf.global_variables_initializer())
@@ -176,9 +176,11 @@ with tf.Session() as sess:
             c_train.append(sess.run(loss, feed_dict = {xs:X_train, ys:y_train}))
             c_test.append(sess.run(loss, feed_dict = {xs:X_test, ys:y_test}))
 
+            loss_summary = sess.run(_loss_summary)
+            writer.add_summary(loss_summary, it)
+
             if save_training:
-                # loss_summary = sess.run(_loss_summary)
-                # writer.add_summary(loss_summary, it)
+                
 
                 intrain_pred_test = sess.run(output, feed_dict={xs:X_test})
                 intrain_pred_train = sess.run(output, feed_dict={xs:X_train})
@@ -194,7 +196,7 @@ with tf.Session() as sess:
 
             it += 1
         
-        print('Epoch:', i, ', train loss:', c_train[it], ', test loss:', c_test[it])
+        print('Epoch:', i, ', train loss:', c_train[i*n_batch_per_epoch], ', test loss:', c_test[i*n_batch_per_epoch])
 
     # finished training
     print('\nTraining complete.')
