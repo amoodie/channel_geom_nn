@@ -19,7 +19,7 @@ print('Data summary:\n')
 print(df.describe(), '\n\n') # Overview of dataset
 
 # subset for train and test and rescale all values
-df_train, df_test = train_test_split(df, test_size=0.20)
+df_train, df_test = train_test_split(df, test_size=0.30)
 
 # we want to predict the H and B given Qbf, S, D50
 # y is output and x is input features
@@ -32,8 +32,6 @@ scaler = MinMaxScaler() # For normalizing dataset
 # y_train = scaler.fit_transform(df_train[['Bbf.m', 'Hbf.m', 'S']].values)
 # X_test = scaler.fit_transform(df_test.drop(['Bbf.m', 'Hbf.m', 'S'], axis=1).values)
 # y_test = scaler.fit_transform(df_test[['Bbf.m', 'Hbf.m', 'S']].values)
-# logged = False
-# normed = True
 
 # min max log(x) normalization
 # X_train = scaler.fit_transform(np.log10(df_train.drop(['Bbf.m', 'Hbf.m', 'S'], axis=1).values))
@@ -85,7 +83,7 @@ def denormalize(df, norm_data):
         df = np.log10(df[['Bbf.m', 'Hbf.m', 'S']].values)
     else:
         df = df[['Bbf.m', 'Hbf.m', 'S']].values
-    
+
     if normed:
         scl = MinMaxScaler()
         a = scl.fit_transform(df)
@@ -126,7 +124,7 @@ def nn_model(X_data, input_dim):
     # layer_2 = tf.nn.relu(layer_2)
 
     # output layer multiplying and adding bias then activation function
-    W_O = tf.Variable(tf.random_uniform([n_nodes, 3], dtype = 'float64')) # 2 because there are two outputs
+    W_O = tf.Variable(tf.random_uniform([n_nodes, 3], dtype = 'float64')) # 3 because there are two outputs
     b_O = tf.Variable(tf.zeros([3], dtype = 'float64'))
     output = tf.add(tf.matmul(layer_1, W_O), b_O)
     # output = tf.add(tf.matmul(layer_2, W_O), b_O)
@@ -185,8 +183,6 @@ with tf.Session() as sess:
     pred_test = sess.run(output, feed_dict={xs:X_test})
     pred_train = sess.run(output, feed_dict={xs:X_train})
     
-    print(pred_train.shape)
-
     # denormalize data
     y_test = denormalize(df_test, y_test)
     pred_test = denormalize(df_test, pred_test)
@@ -238,7 +234,6 @@ with tf.Session() as sess:
     ax2[2].set_xlim([df['S'].min()/10, df['S'].max()*10])
     ax2[2].set_ylim([df['S'].min()/10, df['S'].max()*10])
     fig2.savefig('figures/compare.png')
-
 
     fig3, ax3 = plt.subplots()
     ax3.plot(np.arange(len(c_train)) / n_batch_per_epoch, np.array(c_train))

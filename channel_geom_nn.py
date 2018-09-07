@@ -7,8 +7,9 @@ from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
 
 # read the data
-df = pd.read_csv('data/mcelroy_dataclean.csv') # read data set using pandas
+# df = pd.read_csv('data/mcelroy_dataclean.csv') # read data set using pandas
 # df = pd.read_csv('data/wilkerson_dataclean.csv') # read data set using pandas
+df = pd.read_csv('data/ShieldsJHRData.csv') # read data set using pandas
 # df = pd.read_csv('data/combined.csv') # read data set using pandas
 # df = pd.read_csv('data/combined_modified.csv') # read data set using pandas
 # df = pd.read_csv('data/combined_modified_cut.csv') # read data set using pandas
@@ -43,10 +44,10 @@ scaler = MinMaxScaler() # For normalizing dataset
 # normed = True
 
 # log(x) normalization
-X_train = (np.log10(df_train.drop(['Bbf.m', 'Hbf.m'], axis=1).values))
-y_train = (np.log10(df_train[['Bbf.m', 'Hbf.m']].values))
-X_test = (np.log10(df_test.drop(['Bbf.m', 'Hbf.m'], axis=1).values))
-y_test = (np.log10(df_test[['Bbf.m', 'Hbf.m']].values))
+X_train = (np.log10(df_train.drop(['Bbf.m', 'Hbf.m', 'S'], axis=1).values))
+y_train = (np.log10(df_train[['Bbf.m', 'Hbf.m', 'S']].values))
+X_test = (np.log10(df_test.drop(['Bbf.m', 'Hbf.m', 'S'], axis=1).values))
+y_test = (np.log10(df_test[['Bbf.m', 'Hbf.m', 'S']].values))
 logged = True
 normed = False
 
@@ -81,9 +82,9 @@ def denormalize(df, norm_data):
     """
 
     if logged:
-        df = np.log10(df[['Bbf.m', 'Hbf.m']].values)
+        df = np.log10(df[['Bbf.m', 'Hbf.m', 'S']].values)
     else:
-        df = df[['Bbf.m', 'Hbf.m']].values
+        df = df[['Bbf.m', 'Hbf.m', 'S']].values
     
     if normed:
         scl = MinMaxScaler()
@@ -126,8 +127,8 @@ def nn_model(X_data, input_dim):
     # layer_2 = tf.nn.relu(layer_2)
 
     # output layer multiplying and adding bias then activation function
-    W_O = tf.Variable(tf.random_uniform([n_nodes, 2], dtype = 'float64')) # 2 because there are two outputs
-    b_O = tf.Variable(tf.zeros([2], dtype = 'float64'))
+    W_O = tf.Variable(tf.random_uniform([n_nodes, 3], dtype = 'float64')) # 3 because there are two outputs
+    b_O = tf.Variable(tf.zeros([3], dtype = 'float64'))
     output = tf.add(tf.matmul(layer_1, W_O), b_O)
     # output = tf.add(tf.matmul(layer_2, W_O), b_O)
 
