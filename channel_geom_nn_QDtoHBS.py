@@ -1,10 +1,11 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
+
+import plot_utils
 
 # read the data
 # df = pd.read_csv('data/mcelroy_dataclean.csv') # read data set using pandas
@@ -67,7 +68,7 @@ normed = False
 
 # set up data for mini-batching during training
 batch_size = 1
-# batch_size = 2
+buffer_size = 15
 ds_train = tf.data.Dataset.from_tensor_slices((X_train, y_train)).repeat().batch(batch_size)
 it_train = ds_train.make_one_shot_iterator()
 xs, ys = it_train.get_next()
@@ -105,7 +106,7 @@ def nn_model(X_data, input_dim):
     Weights and biases are abberviated as W_1, W_2 and b_1, b_2 
     """
 
-    n_nodes = 5
+    n_nodes = 3
 
     # layer 1 multiplying and adding bias then activation function
     W_1 = tf.Variable(tf.random_uniform([input_dim, n_nodes], dtype='float64'))
@@ -152,6 +153,8 @@ train = tf.train.AdamOptimizer(learning_rate).minimize(loss)
 c_train = []
 c_test = []
 
+
+save_training = False
 with tf.Session() as sess:
     # Initiate session and initialize all vaiables
     sess.run(tf.global_variables_initializer())
@@ -159,9 +162,10 @@ with tf.Session() as sess:
     writer = tf.summary.FileWriter("logs/graph", sess.graph)
 
     it = 0
-    n_epoch = 4
+    n_epoch = 3
     n_batch_per_epoch = int( np.floor(X_train.shape[0] / batch_size) )
     for i in range(n_epoch):
+        ds_train.shuffle(buffer_size)
         for j in range(n_batch_per_epoch):
             # Run loss and train with each batch
             sess.run([loss, train])
@@ -170,6 +174,17 @@ with tf.Session() as sess:
             c_train.append(sess.run(loss, feed_dict = {xs:X_train, ys:y_train}))
             c_test.append(sess.run(loss, feed_dict = {xs:X_test, ys:y_test}))
             it += 1
+
+            if save_training:
+                pred_test = sess.run(output, feed_dict={xs:X_test})
+                pred_train = sess.run(output, feed_dict={xs:X_train})
+                y_test = denormalize(df_test, y_test)
+                pred_test = denormalize(df_test, pred_test)
+                y_train = denormalize(df_train, y_train)
+                pred_train = denormalize(df_train, pred_train)
+                figN = plot_utils.compare_plot(df, df_train, df_test, pred_train, pred_test)
+                figN.savefig('figures/training/{:04d}.png'.format(it))
+                plt.close(figN)
         
         print('Epoch:', i, ', train loss:', c_train[i*n_batch_per_epoch], ', test loss:', c_test[i*n_batch_per_epoch])
 
@@ -183,65 +198,31 @@ with tf.Session() as sess:
     pred_test = sess.run(output, feed_dict={xs:X_test})
     pred_train = sess.run(output, feed_dict={xs:X_train})
     
-    # denormalize data
-    y_test = denormalize(df_test, y_test)
-    pred_test = denormalize(df_test, pred_test)
-    y_train = denormalize(df_train, y_train)
-    pred_train = denormalize(df_train, pred_train)
+# denormalize data
+y_test = denormalize(df_test, y_test)
+pred_test = denormalize(df_test, pred_test)
+y_train = denormalize(df_train, y_train)
+pred_train = denormalize(df_train, pred_train)
 
-    fig1, axes1 = plt.subplots(nrows=1, ncols=3)
-    axes1[0].hist([df_train['Qbf.m3s'], df_test['Qbf.m3s']], histtype = 'bar', density = True)
-    axes1[0].set_xlabel('Qbf (m3/s)')
-    axes1[1].hist([df_train['S'], df_test['S']], histtype = 'bar', density = True)
-    axes1[1].set_xlabel('S')
-    axes1[2].hist([df_train['D50.mm'], df_test['D50.mm']], histtype = 'bar', density = True)
-    axes1[2].set_xlabel('D50 (mm)')
-    plt.legend(['train', 'test'], loc = 'best')
-    fig1.savefig('figures/split.png')
+fig1, axes1 = plt.subplots(nrows=1, ncols=2, figsize=(6,4))
+axes1[0].hist([df_train['Qbf.m3s'], df_test['Qbf.m3s']], histtype = 'bar', density = True)
+axes1[0].set_xlabel('Qbf (m3/s)')
+axes1[1].hist([df_train['D50.mm'], df_test['D50.mm']], histtype = 'bar', density = True)
+axes1[1].set_xlabel('D50 (mm)')
+plt.legend(['train', 'test'], loc = 'best')
+fig1.savefig('figures/split.png')
 
-    fig2, ax2 = plt.subplots(nrows=1, ncols=3)
-    ax2[0].plot(df_train['Hbf.m'], pred_train[:,1], 'o', alpha=0.2)
-    ax2[0].plot(df_test['Hbf.m'], pred_test[:,1], 'o', alpha=0.8)
-    ax2[0].plot([df['Hbf.m'].min()/10, df['Hbf.m'].max()*10], [df['Hbf.m'].min()/10, df['Hbf.m'].max()*10], 'k-', lw=2)
-    ax2[0].axis('square')
-    ax2[0].set_title('depth H, (m)')
-    ax2[0].set_yscale('log')
-    ax2[0].set_xscale('log')
-    ax2[0].set_xlabel('actual')
-    ax2[0].set_ylabel('pred')
-    ax2[0].set_xlim([df['Hbf.m'].min()/10, df['Hbf.m'].max()*10])
-    ax2[0].set_ylim([df['Hbf.m'].min()/10, df['Hbf.m'].max()*10])
-    ax2[1].plot(df_train['Bbf.m'], pred_train[:,0], 'o', alpha=0.2)
-    ax2[1].plot(df_test['Bbf.m'], pred_test[:,0], 'o', alpha=0.8)
-    ax2[1].plot([df['Bbf.m'].min()/10, df['Bbf.m'].max()*10], [df['Bbf.m'].min()/10, df['Bbf.m'].max()*10], 'k-', lw=2)
-    ax2[1].axis('square')
-    ax2[1].set_title('width B, (m)')
-    ax2[1].set_yscale('log')
-    ax2[1].set_xscale('log')
-    ax2[1].set_xlabel('actual')
-    ax2[1].set_ylabel('pred')
-    ax2[1].set_xlim([df['Bbf.m'].min()/10, df['Bbf.m'].max()*10])
-    ax2[1].set_ylim([df['Bbf.m'].min()/10, df['Bbf.m'].max()*10])
-    ax2[2].plot(df_train['S'], pred_train[:,2], 'o', alpha=0.2)
-    ax2[2].plot(df_test['S'], pred_test[:,2], 'o', alpha=0.8)
-    ax2[2].plot([df['S'].min()/10, df['S'].max()*10], [df['S'].min()/10, df['S'].max()*10], 'k-', lw=2)
-    ax2[2].axis('square')
-    ax2[2].set_title('slope S, (1)')
-    ax2[2].set_yscale('log')
-    ax2[2].set_xscale('log')
-    ax2[2].set_xlabel('actual')
-    ax2[2].set_ylabel('pred')
-    ax2[2].set_xlim([df['S'].min()/10, df['S'].max()*10])
-    ax2[2].set_ylim([df['S'].min()/10, df['S'].max()*10])
-    fig2.savefig('figures/compare.png')
+fig2 = plot_utils.compare_plot(df, df_train, df_test, pred_train, pred_test)
+fig2.savefig('figures/compare.png')
 
-    fig3, ax3 = plt.subplots()
-    ax3.plot(np.arange(len(c_train)) / n_batch_per_epoch, np.array(c_train))
-    ax3.plot(np.arange(len(c_test)) / n_batch_per_epoch, np.array(c_test))
-    ax3.set_xlabel('epoch')
-    ax3.set_ylabel('loss')
-    plt.legend(['train', 'test'], loc = 'best')
-    fig3.savefig('figures/train.png')
+fig3, ax3 = plt.subplots(figsize=(6,4))
+ax3.plot(np.arange(len(c_train)) / n_batch_per_epoch, np.array(c_train))
+ax3.plot(np.arange(len(c_test)) / n_batch_per_epoch, np.array(c_test))
+ax3.set_xlabel('epoch')
+ax3.set_ylabel('loss')
+plt.legend(['train', 'test'], loc = 'best')
+fig3.savefig('figures/train.png')
 
-    # print(W_O.read_value().eval())
+# print(W_O.read_value().eval())
     
+

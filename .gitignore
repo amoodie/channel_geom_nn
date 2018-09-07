@@ -93,3 +93,6 @@ Session.vim
 .netrwhist
 *~
 
+# training figs etc
+figures/training/
+demo/training/
