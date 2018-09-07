@@ -7,6 +7,8 @@ import tensorflow as tf
 
 import plot_utils
 
+tf.reset_default_graph()
+
 # read the data
 # df = pd.read_csv('data/mcelroy_dataclean.csv') # read data set using pandas
 # df = pd.read_csv('data/wilkerson_dataclean.csv') # read data set using pandas
@@ -147,19 +149,20 @@ learning_rate = 0.01
 train = tf.train.AdamOptimizer(learning_rate).minimize(loss)
 
 # some other initializations
+# _loss_summary = tf.summary.scalar(name='loss summary', tensor=loss)
 # correct_pred = tf.argmax(output, 1)
-# accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
+# accuracy = tf.losses.mean_squared_error(tf.cast(correct_pred, tf.float32), ys)
 
 c_train = []
 c_test = []
 
 
-save_training = False
+save_training = True
 with tf.Session() as sess:
     # Initiate session and initialize all vaiables
     sess.run(tf.global_variables_initializer())
 
-    writer = tf.summary.FileWriter("logs/graph", sess.graph)
+    writer = tf.summary.FileWriter("log/", sess.graph)
 
     it = 0
     n_epoch = 3
@@ -170,23 +173,28 @@ with tf.Session() as sess:
             # Run loss and train with each batch
             sess.run([loss, train])
 
-            # keep track of the loss
             c_train.append(sess.run(loss, feed_dict = {xs:X_train, ys:y_train}))
             c_test.append(sess.run(loss, feed_dict = {xs:X_test, ys:y_test}))
-            it += 1
 
             if save_training:
-                pred_test = sess.run(output, feed_dict={xs:X_test})
-                pred_train = sess.run(output, feed_dict={xs:X_train})
-                y_test = denormalize(df_test, y_test)
-                pred_test = denormalize(df_test, pred_test)
-                y_train = denormalize(df_train, y_train)
-                pred_train = denormalize(df_train, pred_train)
-                figN = plot_utils.compare_plot(df, df_train, df_test, pred_train, pred_test)
+                # loss_summary = sess.run(_loss_summary)
+                # writer.add_summary(loss_summary, it)
+
+                intrain_pred_test = sess.run(output, feed_dict={xs:X_test})
+                intrain_pred_train = sess.run(output, feed_dict={xs:X_train})
+
+                intrain_y_test = denormalize(df_test, y_test)
+                intrain_pred_test = denormalize(df_test, intrain_pred_test)
+                intrain_y_train = denormalize(df_train, y_train)
+                intrain_pred_train = denormalize(df_train, intrain_pred_train)
+                figN = plot_utils.compare_plot(df, df_train, df_test, intrain_pred_train, intrain_pred_test)
                 figN.savefig('figures/training/{:04d}.png'.format(it))
                 plt.close(figN)
+                print('Epoch:', i, ', train loss:', c_train[i*n_batch_per_epoch], ', test loss:', c_test[i*n_batch_per_epoch])
+
+            it += 1
         
-        print('Epoch:', i, ', train loss:', c_train[i*n_batch_per_epoch], ', test loss:', c_test[i*n_batch_per_epoch])
+        print('Epoch:', i, ', train loss:', c_train[it], ', test loss:', c_test[it])
 
     # finished training
     print('\nTraining complete.')
@@ -224,5 +232,7 @@ plt.legend(['train', 'test'], loc = 'best')
 fig3.savefig('figures/train.png')
 
 # print(W_O.read_value().eval())
+
+
     
 

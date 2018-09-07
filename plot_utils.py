@@ -15,6 +15,8 @@ def compare_plot(df, df_train, df_test, pred_train=None, pred_test=None):
     ax2[0].set_ylabel('pred')
     ax2[0].set_xlim([df['Hbf.m'].min()/10, df['Hbf.m'].max()*10])
     ax2[0].set_ylim([df['Hbf.m'].min()/10, df['Hbf.m'].max()*10])
+    ax2[0].legend(['train', 'test'], loc = 'upper left')
+
     ax2[1].plot(df_train['Bbf.m'], pred_train[:,0], 'o', alpha=0.2)
     ax2[1].plot(df_test['Bbf.m'], pred_test[:,0], 'o', alpha=0.8)
     ax2[1].plot([df['Bbf.m'].min()/10, df['Bbf.m'].max()*10], [df['Bbf.m'].min()/10, df['Bbf.m'].max()*10], 'k-', lw=2)
@@ -23,9 +25,9 @@ def compare_plot(df, df_train, df_test, pred_train=None, pred_test=None):
     ax2[1].set_yscale('log')
     ax2[1].set_xscale('log')
     ax2[1].set_xlabel('actual')
-    # ax2[1].set_ylabel('pred')
     ax2[1].set_xlim([df['Bbf.m'].min()/10, df['Bbf.m'].max()*10])
     ax2[1].set_ylim([df['Bbf.m'].min()/10, df['Bbf.m'].max()*10])
+
     ax2[2].plot(df_train['S'], pred_train[:,2], 'o', alpha=0.2)
     ax2[2].plot(df_test['S'], pred_test[:,2], 'o', alpha=0.8)
     ax2[2].plot([df['S'].min()/10, df['S'].max()*10], [df['S'].min()/10, df['S'].max()*10], 'k-', lw=2)
@@ -34,8 +36,7 @@ def compare_plot(df, df_train, df_test, pred_train=None, pred_test=None):
     ax2[2].set_yscale('log')
     ax2[2].set_xscale('log')
     ax2[2].set_xlabel('actual')
-    # ax2[2].set_ylabel('pred')
     ax2[2].set_xlim([df['S'].min()/10, df['S'].max()*10])
     ax2[2].set_ylim([df['S'].min()/10, df['S'].max()*10])
-    plt.legend(['train', 'test'], loc = 'best')
+
     return fig2
