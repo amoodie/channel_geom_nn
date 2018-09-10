@@ -82,6 +82,9 @@ target/
 [._]*.s[a-w][a-z]
 [._]s[a-w][a-z]
 *.un~
+Session.vim
+.netrwhist
+*~
 
 # sublime
 *.sublime-project
@@ -90,9 +93,6 @@ target/
 # input data
 data/mc*
 data/wi*
-Session.vim
-.netrwhist
-*~
 
 # training figs etc
 figures/training/

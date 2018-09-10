@@ -13,9 +13,6 @@ tf.reset_default_graph()
 # df = pd.read_csv('data/mcelroy_dataclean.csv') # read data set using pandas
 # df = pd.read_csv('data/wilkerson_dataclean.csv') # read data set using pandas
 df = pd.read_csv('data/ShieldsJHRData.csv') # read data set using pandas
-# df = pd.read_csv('data/combined.csv') # read data set using pandas
-# df = pd.read_csv('data/combined_modified.csv') # read data set using pandas
-# df = pd.read_csv('data/combined_modified_cut.csv') # read data set using pandas
 df = df.dropna(inplace = False)  # Remove all nan entries.
 
 print('Data summary:\n')
@@ -24,7 +21,8 @@ print(df.describe(), '\n\n') # Overview of dataset
 # subset for train and test and rescale all values
 df_train, df_test = train_test_split(df, test_size=0.30)
 
-# we want to predict the H and B given Qbf, S, D50
+# we want to predict the H, B, and S given Qbf, D50
+# this only works because HBS are highly correlated.
 # y is output and x is input features
 
 # do some normalization
@@ -156,7 +154,6 @@ _loss_summary = tf.summary.scalar(name='loss summary', tensor=loss)
 c_train = []
 c_test = []
 
-
 save_training = False
 with tf.Session() as sess:
     # Initiate session and initialize all vaiables
@@ -208,12 +205,15 @@ with tf.Session() as sess:
     pred_test = sess.run(output, feed_dict={xs:X_test})
     pred_train = sess.run(output, feed_dict={xs:X_train})
     
+
 # denormalize data
 y_test = denormalize(df_test, y_test)
 pred_test = denormalize(df_test, pred_test)
 y_train = denormalize(df_train, y_train)
 pred_train = denormalize(df_train, pred_train)
 
+
+# plots
 fig1, axes1 = plt.subplots(nrows=1, ncols=2, figsize=(6,4))
 axes1[0].hist([df_train['Qbf.m3s'], df_test['Qbf.m3s']], histtype = 'bar', density = True)
 axes1[0].set_xlabel('Qbf (m3/s)')
@@ -232,8 +232,6 @@ ax3.set_xlabel('epoch')
 ax3.set_ylabel('loss')
 plt.legend(['train', 'test'], loc = 'best')
 fig3.savefig('figures/train.png')
-
-# print(W_O.read_value().eval())
 
 fig4, ax4 = plt.subplots(figsize=(8,6))
 pd.plotting.scatter_matrix(np.log10(df), ax=ax4)
