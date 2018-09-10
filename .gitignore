@@ -88,7 +88,8 @@ target/
 *.sublime-workspace
 
 # input data
-data/
+data/mc*
+data/wi*
 Session.vim
 .netrwhist
 *~
