@@ -9,7 +9,7 @@ I decided to use the data from Li et al., 2015 [paper link here](https://www.tan
 
 The dataset has variable bankful discharge, width, depth, channel slope and bed material D50 grain size.
 ```
-			 Qbf.m3s        Bbf.m          Hbf.m 			   S         D50.mm
+             Qbf.m3s        Bbf.m          Hbf.m               S         D50.mm
 count     231.000000   231.000000     231.000000      231.000000  	 231.000000
 mean     5677.704870   234.365378       3.902396        0.003706      26.984729
 std     22272.474031   538.586544       6.189606        0.007011   	  38.927618
@@ -19,3 +19,17 @@ min         0.337254     2.255520       0.219456        0.000009  	   0.010000
 75%       849.505398   138.675000       4.382500        0.003600  	  43.000000
 max    216340.707963  3400.000000      48.117760        0.052000     167.500000
 ```
+
+We want to be able to predict the width, depth, and slope from the discharge and grain size alone.
+This is typically a problem, because we are trying to map two input features into three output features.
+In this case though, the model works because the output H and B are highly correlated. 
+
+![correlation](https://github.com/amoodie/channel_geom_nn/blob/master/figures/scatter.png)
+
+The network is a simple ANN, with one hidden layer with 3 nodes.
+
+## Using/testing the model
+* clone the repo
+* you will need tensorflow installed
+* run the main model script `channel_geom_nn_QDtoHBS.py`
+* modify the content of the script to change the number of nodes, layers, normalization, optimizer, etc.
