@@ -235,6 +235,10 @@ fig3.savefig('figures/train.png')
 
 # print(W_O.read_value().eval())
 
+fig4, ax4 = plt.subplots(figsize=(8,6))
+pd.plotting.scatter_matrix(np.log10(df), ax=ax4)
+fig4.savefig('figures/scatter.png')
 
-    
-
+fig5, ax5 = plt.subplots()
+ax5.matshow(np.log10(df).corr())
+fig5.savefig('figures/corr_mat.png')
