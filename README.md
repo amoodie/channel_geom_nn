@@ -33,3 +33,10 @@ The network is a simple ANN, with one hidden layer with 3 nodes.
 * you will need tensorflow installed
 * run the main model script `channel_geom_nn_QDtoHBS.py`
 * modify the content of the script to change the number of nodes, layers, normalization, optimizer, etc.
+
+
+## more figures
+
+![correlation](https://github.com/amoodie/channel_geom_nn/blob/master/figures/train.png)
+
+![correlation](https://github.com/amoodie/channel_geom_nn/blob/master/figures/compare.png)
