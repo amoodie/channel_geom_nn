@@ -1,13 +1,13 @@
 # nn for channel geometry
 
 In an attempt to learn more about ML I decided to just jump in and try a project.
-Predictinig channel geometry with a simple neural network.
+Predicting channel geometry with a simple neural network.
 
 <img src="https://github.com/amoodie/channel_geom_nn/blob/master/demo/training/output.gif" alt="demo_gif">
 
 I decided to use the data from Li et al., 2015 [paper link here](https://www.tandfonline.com/doi/abs/10.1080/00221686.2014.939113), which contains data for 231 river geometries.
 
-The dataset has variable bankful discharge, width, depth, channel slope and bed material D50 grain size.
+The dataset has variable bankfull discharge, width, depth, channel slope and bed material D50 grain size.
 ```
              Qbf.m3s        Bbf.m          Hbf.m               S         D50.mm
 count     231.000000   231.000000     231.000000      231.000000  	 231.000000
