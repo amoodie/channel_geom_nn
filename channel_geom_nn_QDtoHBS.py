@@ -98,17 +98,13 @@ def nn_model(X_data, input_dim):
     Weights and biases are abberviated as W_1, W_2 and b_1, b_2 
     """
 
-    n_nodes = 3
+    n_nodes = 1
 
     # layer 1 multiplying and adding bias then activation function
     W_1 = tf.Variable(tf.random_uniform([input_dim, n_nodes], dtype='float64'))
     b_1 = tf.Variable(tf.zeros([n_nodes], dtype = 'float64'))
     layer_1 = tf.add(tf.matmul(X_data, W_1), b_1)
     layer_1 = tf.nn.relu(layer_1)
-    # layer_1 = tf.nn.tanh(layer_1)
-    # layer_1 = tf.nn.sigmoid(layer_1)
-    # layer_1 = tf.nn.softmax(layer_1)
-    # layer_1 = tf.nn.leaky_relu(layer_1, alpha = 0.1)
 
     # layer 2 multiplying and adding bias then activation function    
     # W_2 = tf.Variable(tf.random_uniform([n_nodes, n_nodes], dtype='float64'))
@@ -155,7 +151,7 @@ with tf.Session() as sess:
     writer = tf.summary.FileWriter("log/", sess.graph)
 
     it = 0
-    n_epoch = 5
+    n_epoch = 10
     n_batch_per_epoch = int( np.floor(X_train.shape[0] / batch_size) )
     for i in range(n_epoch):
         ds_train.shuffle(buffer_size)
