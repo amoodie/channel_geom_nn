@@ -50,14 +50,6 @@ y_test = (np.log10(df_test[['Bbf.m', 'Hbf.m', 'S']].values))
 logged = True
 normed = False
 
-# min max log(x) normalization (whole dataset)
-# X_train = scaler.fit_transform(np.log10(df.drop(['Bbf.m', 'Hbf.m', 'S'], axis=1).values))
-# y_train = scaler.fit_transform(np.log10(df[['Bbf.m', 'Hbf.m', 'S']].values))
-# X_test = scaler.fit_transform(np.log10(df.drop(['Bbf.m', 'Hbf.m', 'S'], axis=1).values))
-# y_test = scaler.fit_transform(np.log10(df[['Bbf.m', 'Hbf.m', 'S']].values))
-# logged = True
-# normed = True
-
 # no normalization (be sure to turn off below for plotting)
 # X_train = (df_train.drop(['Bbf.m', 'Hbf.m', 'S'], axis=1).values)
 # y_train = (df_train[['Bbf.m', 'Hbf.m', 'S']].values)
@@ -69,7 +61,7 @@ normed = False
 # set up data for mini-batching during training
 batch_size = 1
 buffer_size = 15
-ds_train = tf.data.Dataset.from_tensor_slices((X_train, y_train)).repeat().batch(batch_size)
+ds_train = tf.data.Dataset.from_tensor_slices((X_train, y_train)).repeat().batch(batch_size).shuffle(buffer_size)
 it_train = ds_train.make_one_shot_iterator()
 xs, ys = it_train.get_next()
 
@@ -143,13 +135,14 @@ loss = tf.losses.mean_squared_error(output, ys)
 
 # Gradinent Descent optimiztion just discussed above for updating weights and biases
 learning_rate = 0.01
-# train = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss)
-train = tf.train.AdamOptimizer(learning_rate).minimize(loss)
+train = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss)
+# train = tf.train.AdamOptimizer(learning_rate).minimize(loss)
 
 # some other initializations
 _loss_summary = tf.summary.scalar(name='loss summary', tensor=loss)
 # correct_pred = tf.argmax(output, 1)
 # accuracy = tf.losses.mean_squared_error(tf.cast(correct_pred, tf.float32), ys)
+# saver = tf.train.Saver()
 
 c_train = []
 c_test = []
@@ -162,7 +155,7 @@ with tf.Session() as sess:
     writer = tf.summary.FileWriter("log/", sess.graph)
 
     it = 0
-    n_epoch = 3
+    n_epoch = 5
     n_batch_per_epoch = int( np.floor(X_train.shape[0] / batch_size) )
     for i in range(n_epoch):
         ds_train.shuffle(buffer_size)
@@ -201,10 +194,26 @@ with tf.Session() as sess:
     print('test loss :', sess.run(loss, feed_dict={xs:X_test, ys:y_test}), '\n')
     writer.close()
 
+    # save the model
+    # save_path = saver.save(sess, "log/channel_geom_nn_QDtoHBS.ckpt")
+
     # predict output of test data after training
     pred_test = sess.run(output, feed_dict={xs:X_test})
     pred_train = sess.run(output, feed_dict={xs:X_train})
-    
+
+    # predict for some range
+    qlist = np.array([2000, 3000])
+    dlist = np.linspace(1, 20, num=19) # np.array([1.0, 5.0, 10, 100])
+    bhs = np.empty((qlist.shape[0]*dlist.shape[0], 3))
+    dep = 0
+    for q in iter(qlist):
+        for d in iter(dlist):
+            invect = np.log10( np.array([q, d]).reshape(-1, 2) )
+            pred_rng = sess.run(output, feed_dict={xs:invect})
+            pred_dn = denormalize(df_test, pred_rng)
+            bhs[dep, :] = pred_dn
+            dep += 1
+    bhs = bhs.reshape((dlist.shape[0], 3, -1))   
 
 # denormalize data
 y_test = denormalize(df_test, y_test)
@@ -240,3 +249,23 @@ fig4.savefig('figures/scatter.png')
 fig5, ax5 = plt.subplots()
 ax5.matshow(np.log10(df).corr())
 fig5.savefig('figures/corr_mat.png')
+
+fig6, ax6 = plt.subplots(nrows=3, ncols=1, figsize=(6,10))
+ax6[0].scatter(df['D50.mm'], df['Hbf.m'])
+for p in np.arange(bhs.shape[2]):
+    ax6[0].plot(dlist, bhs[:, 1, p])
+    ax6[0].set_ylabel('depth (m)')
+ax6[1].scatter(df['D50.mm'], df['Bbf.m'])
+for p in np.arange(bhs.shape[2]):
+    ax6[1].plot(dlist, bhs[:, 0, p])
+    ax6[1].set_ylabel('width (m)')
+ax6[2].scatter(df['D50.mm'], df['S'])
+for p in np.arange(bhs.shape[2]):
+    ax6[2].plot(dlist, bhs[:, 2, p])
+    ax6[2].set_ylabel('slope (1)')
+ax6[2].set_yscale('log')
+# ax6[0].set_xscale('log')
+ax6[0].legend(qlist)
+# plt.show()
+
+fig6.savefig('figures/input_test.png')
