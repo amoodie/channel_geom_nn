@@ -72,11 +72,14 @@ class ChannelDataset(object):
         self.ds_train = tf.data.Dataset.from_tensor_slices((self.X_train, self.y_train)).repeat().batch(self.batch_size).shuffle(self.buffer_size)
         self.it_train = self.ds_train.make_one_shot_iterator()
         
+
     def get_next(self):
         return self.it_train.get_next()
 
+
     def shuffle(self):
         self.ds_train.shuffle(self.buffer_size)
+
 
 
 class LogScaler(object):
@@ -86,11 +89,14 @@ class LogScaler(object):
     def __init__(self):
         pass
 
+
     def fit_transform(self, X):
         return self.transform(X)
 
+
     def transform(self, X):
         return np.log10(X)
+
 
     def inverse_transform(self, X):
         return np.power(10, X)
@@ -104,11 +110,14 @@ class DummyScaler(object):
     def __init__(self):
         pass
 
+
     def fit_transform(self, X):
         return self.transform(X)
 
+
     def transform(self, X):
         return X
+
 
     def inverse_transform(self, X):
         return X
