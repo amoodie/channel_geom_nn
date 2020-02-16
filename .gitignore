@@ -97,3 +97,5 @@ data/wi*
 # training figs etc
 figures/training/
 demo/training/
+
+log/
